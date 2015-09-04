@@ -1,0 +1,252 @@
+<!DOCTYPE html [
+        <!ENTITY nbsp "&#160;">
+        <!ENTITY bull "&#8226;">
+        <!ENTITY copy "&#169;">
+        ]>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+<h:head>
+    <f:facet name="first">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+        <meta name="apple-mobile-web-app-capable" content="yes"/>
+    </f:facet>
+</h:head>
+<h:body>
+
+    <h:form>
+
+        <p:tabView dynamic="true" cache="false">
+            <p:tab title="Serviço REST">
+
+                <p:remoteCommand name="modalMSG" actionListener="#{dfView.showMessage}" process="@this"/>
+                <h:panelGrid id="grid" columns="2" cellpadding="5">
+                    <h:outputLabel for="cep" value="CEP:" style="font-weight:bold"/>
+                    <p:inputText id="cep" styleClass="txtCEP" maxlength="8"/>
+
+                    <p:commandButton type="button" value="Chamada REST" icon="ui-icon-script" onclick="enviarREST()"/>
+                    <pre id="retorno"></pre>
+                    <h:outputScript>
+                        function enviarREST() {
+                        var envio=JSON.stringify({'cep':$('.txtCEP').val()});
+                        $('#retorno').html('Envio: ' + envio);
+                        $.ajax(
+                        {
+                        type:'POST'
+                        ,url:'#{request.contextPath}/rest/cep'
+                        ,dataType:'json'
+                        ,contentType:'application/json'
+                        ,success:
+                        function(data){
+                        $('#retorno').append('\nRetorno: '+JSON.stringify(data));
+                        if (data.message!=null){
+                        modalMSG([{name:'tittle', value:'Erro REST'}, {name:'msg', value:data.message}]);
+                        }
+                        }
+                        ,error:
+                        function() {
+                        modalMSG([{name:'tittle', value:'Erro REST'}, {name:'msg', value:'Falha geral'}]);
+                        }
+                        ,data:envio
+                        }
+                        );
+                        }
+                    </h:outputScript>
+                </h:panelGrid>
+
+
+            </p:tab>
+            <p:tab title="CRUD Cep">
+
+                <p:commandButton
+                        value="Novo"
+                        actionListener="#{enderecoView.novo}"
+                        update=":#{p:component('enderecoDetalhe')}"
+                        oncomplete="PF('enderecoDialog').show()"
+                        icon="ui-icon-heart"
+                        process="@this"
+                        />
+
+                <p:dataTable id="enderecoLista" var="endereco" value="#{enderecoView.lista}">
+
+                    <p:column style="width:32px;text-align: center">
+                        <p:commandButton
+                                title="Editar"
+                                update=":#{p:component('enderecoDetalhe')}"
+                                oncomplete="PF('enderecoDialog').show();"
+                                icon="ui-icon-folder-open"
+                                process="@this"
+                                >
+                            <f:setPropertyActionListener value="#{endereco}"
+                                                         target="#{enderecoView.enderecoSelecionado}"/>
+                        </p:commandButton>
+                    </p:column>
+
+                    <p:column headerText="Id" filterBy="#{endereco.id}">
+                        <h:outputText value="#{endereco.id}"/>
+                    </p:column>
+
+                    <p:column headerText="Cep">
+                        <h:outputText value="#{endereco.cep.cep}"/>
+                    </p:column>
+
+                    <p:column headerText="Rua">
+                        <h:outputText value="#{endereco.cep.rua}"/>
+                    </p:column>
+
+                    <p:column headerText="Cidade">
+                        <h:outputText value="#{endereco.cep.cidade}"/>
+                    </p:column>
+
+                    <p:column headerText="Estado">
+                        <h:outputText value="#{endereco.cep.estado}"/>
+                    </p:column>
+
+                    <p:column headerText="Numero">
+                        <h:outputText value="#{endereco.numero}"/>
+                    </p:column>
+
+                    <p:column headerText="Complemento">
+                        <h:outputText value="#{endereco.complemento}"/>
+                    </p:column>
+
+                    <p:column headerText="Bairro">
+                        <h:outputText value="#{endereco.bairro}"/>
+                    </p:column>
+
+                    <p:column style="width:32px;text-align: center">
+                        <p:commandButton
+                                title="Deletar"
+                                actionListener="#{enderecoView.deletar(endereco.id)}"
+                                update=":#{p:component('enderecoLista')}"
+                                icon="ui-icon-circle-close"
+                                process="@this"
+                                />
+                    </p:column>
+
+                </p:dataTable>
+
+                <p:dialog header="Endereco" widgetVar="enderecoDialog" modal="true" showEffect="fade" hideEffect="fade"
+                          resizable="false" draggable="false">
+                    <p:outputPanel id="enderecoDetalhe" style="text-align:center;">
+                        <p:messages/>
+
+                        <p:panelGrid columns="3">
+                            <f:facet name="header">
+                                <p:panelGrid columns="2" rendered="#{not empty enderecoView.enderecoSelecionado.id}">
+                                    <h:outputLabel for="txtId" value="Id"/>
+                                    <h:outputText id="txtId" label="Id" value="#{enderecoView.enderecoSelecionado.id}"/>
+                                </p:panelGrid>
+                            </f:facet>
+
+                            <h:outputLabel for="txtCEP" value="Cep"/>
+                            <p:autoComplete id="txtCEP" value="#{enderecoView.enderecoSelecionado.cep}"
+                                            required="true"
+                                            requiredMessage="Por favor preencha o CEP"
+                                            completeMethod="#{enderecoView.queryCEP}"
+                                            maxResults="10"
+                                            var="cep" cache="true" itemLabel="#{cep.cep}" itemValue="#{cep}"
+                                            converter="enderecoViewConverter" forceSelection="true"
+                                    >
+                                <p:ajax event="itemSelect"
+                                        update=":#{p:component('txtRua')} :#{p:component('txtCidade')} :#{p:component('txtEstado')}"/>
+                                <p:column>
+                                    <h:outputText value="#{cep.rua}"/>
+                                </p:column>
+                                <p:column>
+                                    <h:outputText value="#{cep.cidade}"/>
+                                </p:column>
+                                <p:column>
+                                    <h:outputText value="#{cep.estado}"/>
+                                </p:column>
+                            </p:autoComplete>
+                            <p:message for="txtCEP"/>
+
+
+                            <h:outputLabel for="txtRua" value="Rua"/>
+                            <h:outputText id="txtRua" label="Rua" value="#{enderecoView.enderecoSelecionado.cep.rua}"/>
+                            <p:message for="txtRua"/>
+
+                            <h:outputLabel for="txtCidade" value="Cidade"/>
+                            <h:outputText id="txtCidade" label="Cidade"
+                                          value="#{enderecoView.enderecoSelecionado.cep.cidade}"/>
+                            <p:message for="txtCidade"/>
+
+                            <h:outputLabel for="txtEstado" value="Estado"/>
+                            <h:outputText id="txtEstado" label="Estado"
+                                          value="#{enderecoView.enderecoSelecionado.cep.estado}"/>
+                            <p:message for="txtEstado"/>
+
+                            <h:outputLabel for="txtNumero" value="Numero"/>
+                            <h:inputText id="txtNumero" label="Numero"
+                                         value="#{enderecoView.enderecoSelecionado.numero}"
+                                         required="true" requiredMessage="Favor informar o número"/>
+                            <p:message for="txtNumero"/>
+
+                            <h:outputLabel for="txtComplemento" value="Complemento"/>
+                            <h:inputText id="txtComplemento" label="Complemento"
+                                         value="#{enderecoView.enderecoSelecionado.complemento}"/>
+                            <p:message for="txtComplemento"/>
+
+                            <h:outputLabel for="txtBairro" value="Bairro"/>
+                            <h:inputText id="txtBairro" label="Bairro"
+                                         value="#{enderecoView.enderecoSelecionado.bairro}"/>
+                            <p:message for="txtBairro"/>
+
+                            <f:facet name="footer">
+                                <p:commandButton
+                                        actionListener="#{enderecoView.merge}"
+                                        update=":#{p:component('enderecoLista')} :#{p:component('enderecoDetalhe')}"
+                                        icon="ui-icon-disk" value="Salvar"
+                                        />
+                            </f:facet>
+                        </p:panelGrid>
+
+                    </p:outputPanel>
+                </p:dialog>
+
+            </p:tab>
+            <p:tab title="Stream">
+                <h:panelGrid columns="2" cellpadding="10">
+
+                    <h:outputLabel value="Todos Caracteres:"/>
+                    <h:inputText id="txtTODOS" value="#{streamView.todosOsCaracteres}"/>
+
+                    <h:outputLabel value="Únicos:"/>
+                    <h:outputText id="txtUltimo" value="#{streamView.ultimoChar}"/>
+
+                    <p:commandButton
+                            value="Validar"
+                            actionListener="#{streamView.firstChar}"
+                            icon="ui-icon-info"
+                            ajax="false"
+                            />
+
+                </h:panelGrid>
+            </p:tab>
+            <p:tab title="Documentação Testes">
+
+                <p:tabView dynamic="true" cache="false">
+                    <p:tab title="JavaDoc dos Testes">
+                        <iframe src="report/testapidocs/index.html" width="1200" height="700"/>
+                    </p:tab>
+                    <p:tab title="SureFire">
+                        <iframe src="report/surefire-report.html" width="1200" height="700"/>
+                    </p:tab>
+                </p:tabView>
+
+            </p:tab>
+            <p:tab title="Dialogo Modal">
+                <p:commandButton process="@this" value="Show" icon="ui-icon-script"
+                                 actionListener="#{dfView.showMessage('Título da Mensagem','Mensagem direta do actionListener dentro de um xhtml')}"/>
+            </p:tab>
+        </p:tabView>
+
+    </h:form>
+
+</h:body>
+
+</html>
